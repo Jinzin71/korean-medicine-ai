@@ -73,7 +73,7 @@ def _symptom_relevance(query: str, p: Prescription, cases: list[Case]) -> float:
 
 def _presc_link(name: str) -> str:
     """처방명을 클릭 가능한 HTML 링크로 감싸기 — 인라인 스타일로 확실한 렌더링"""
-    return (f'<a href="javascript:void(0)" data-presc="{name}" '
+    return (f'<a href="#" data-presc="{name}" '
             f'style="color:#c0392b;cursor:pointer;text-decoration:underline;font-weight:600" '
             f'title="클릭하여 상세 보기">{name}</a>')
 
@@ -350,10 +350,10 @@ def _format_symptom_results(query: str, scored: list[tuple[Prescription, list[Ca
 
         # 설명 발췌
         if p.description:
-            desc = p.description[:300]
+            desc = _linkify_brackets(p.description[:300])
             if len(p.description) > 300:
                 desc += "..."
-            sections.append(f"\n> {desc}")
+            sections.append(f'\n<span style="font-size:13px;color:#555">{desc}</span>')
 
         # 약재
         if p.herbs_detail:
@@ -608,48 +608,58 @@ def _format_herb_search_results(
     )
 
     if full_match:
-        sections.append("### ✅ 모든 약재 포함\n")
+        sections.append('<div style="font-size:15px;font-weight:700;margin:12px 0 8px">✅ 모든 약재 포함</div>')
         for rank, (p, matched, unmatched, coverage) in enumerate(full_match[:12], 1):
-            sections.append(f"---\n#### {rank}. {_presc_link(p.name)}")
-            if p.code:
-                sections.append(f"`{p.code}`  |  {p.section}")
-            # 구성약재 — 검색 약재는 강조
             herb_parts = []
             for h in p.herbs[:18]:
                 if _herb_match(h, required_herbs):
-                    herb_parts.append(f"**{h}**")
+                    herb_parts.append(f'<b>{h}</b>')
                 else:
                     herb_parts.append(h)
             if len(p.herbs) > 18:
-                herb_parts.append(f"외 {len(p.herbs)-18}종")
-            sections.append(f"**구성 ({len(p.herbs)}종):** {', '.join(herb_parts)}")
+                herb_parts.append(f'외 {len(p.herbs)-18}종')
+            code_str = f' <span style="color:#888;font-size:12px">{p.code} | {p.section}</span>' if p.code else ''
+            ind_str = ''
             if p.indications:
-                tags = "  ".join(f"`#{ind}`" for ind in p.indications[:10])
-                sections.append(f"적응증: {tags}")
+                ind_str = '<br><span style="font-size:12px">' + '  '.join(f'<code>#{ind}</code>' for ind in p.indications[:10]) + '</span>'
+            desc_str = ''
             if p.description:
-                desc = p.description[:200] + ("..." if len(p.description) > 200 else "")
-                sections.append(f"> {desc}")
+                desc_raw = _linkify_brackets(p.description[:200]) + ('...' if len(p.description) > 200 else '')
+                desc_str = f'<br><span style="font-size:13px;color:#555">{desc_raw}</span>'
+            sections.append(
+                f'<div class="sim-card">'
+                f'<span style="color:#888;font-size:12px;margin-right:6px">{rank}.</span>'
+                f'{_presc_link(p.name)}{code_str}'
+                f'<br><span style="font-size:13px">구성({len(p.herbs)}종): {", ".join(herb_parts)}</span>'
+                f'{ind_str}{desc_str}'
+                f'</div>'
+            )
 
     if partial_match:
-        sections.append("\n### 🔶 부분 포함 (일부 약재 미포함)\n")
+        sections.append('<div style="font-size:15px;font-weight:700;margin:16px 0 8px">🔶 부분 포함</div>')
         for rank, (p, matched, unmatched, coverage) in enumerate(partial_match[:10], 1):
-            sections.append(f"---\n#### {rank}. {_presc_link(p.name)}  (포함율 {coverage:.0%})")
-            if p.code:
-                sections.append(f"`{p.code}`")
-            sections.append(f"✔ 포함: {', '.join(matched)}")
-            sections.append(f"✖ 미포함: {', '.join(unmatched)}")
             herb_parts = []
             for h in p.herbs[:15]:
                 if _herb_match(h, required_herbs):
-                    herb_parts.append(f"**{h}**")
+                    herb_parts.append(f'<b>{h}</b>')
                 else:
                     herb_parts.append(h)
             if len(p.herbs) > 15:
-                herb_parts.append(f"외 {len(p.herbs)-15}종")
-            sections.append(f"**구성:** {', '.join(herb_parts)}")
+                herb_parts.append(f'외 {len(p.herbs)-15}종')
+            code_str = f' <span style="color:#888;font-size:12px">{p.code}</span>' if p.code else ''
+            ind_str = ''
             if p.indications:
-                tags = "  ".join(f"`#{ind}`" for ind in p.indications[:8])
-                sections.append(f"적응증: {tags}")
+                ind_str = '<br><span style="font-size:12px">' + '  '.join(f'<code>#{ind}</code>' for ind in p.indications[:8]) + '</span>'
+            sections.append(
+                f'<div class="sim-card">'
+                f'<span style="color:#888;font-size:12px;margin-right:6px">{rank}.</span>'
+                f'{_presc_link(p.name)} <span style="font-size:13px;color:#888">(포함율 {coverage:.0%})</span>{code_str}'
+                f'<br><span style="font-size:13px;color:#4a7c59">✔ {", ".join(matched)}</span>'
+                f' <span style="font-size:13px;color:#c0392b">✖ {", ".join(unmatched)}</span>'
+                f'<br><span style="font-size:13px">구성: {", ".join(herb_parts)}</span>'
+                f'{ind_str}'
+                f'</div>'
+            )
 
     return "\n".join(sections)
 

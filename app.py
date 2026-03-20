@@ -545,8 +545,8 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
                     log_refresh_btn = gr.Button("새로고침", variant="secondary")
                     log_refresh_btn.click(fn=read_worklog, inputs=[], outputs=log_out)
 
-    # 처방명 클릭 → 처방 상세 탭 이동 JS (반드시 Blocks 컨텍스트 내부에서 호출)
-    demo.load(fn=None, js=PRESC_LINK_JS)
+    # 처방명 클릭 → 처방 상세 탭 이동 JS — <script> 태그로 직접 주입
+    gr.HTML(f"<script>{PRESC_LINK_JS}</script>")
 
 demo.queue()
 
