@@ -236,29 +236,6 @@ def _format_prescription_detail(p: Prescription, cases: list[Case],
         tags = "  ".join(f"`#{ind}`" for ind in p.indications)
         sections.append(f"\n### 적응증\n{tags}")
 
-    # 치험례
-    if cases:
-        sections.append(f"\n### 치험례 ({len(cases)}건)")
-        for i, c in enumerate(cases, 1):
-            info_parts = []
-            if c.patient_age:
-                info_parts.append(c.patient_age)
-            if c.patient_sex:
-                info_parts.append(c.patient_sex)
-            if c.patient_bmi:
-                info_parts.append(f"BMI {c.patient_bmi}")
-            if c.constitution:
-                info_parts.append(c.constitution)
-            patient_info = " / ".join(info_parts) if info_parts else ""
-            symptoms = c.symptoms or c.content[:100]
-            line = f"{i}. "
-            if patient_info:
-                line += f"**[{patient_info}]** "
-            line += symptoms
-            if c.url:
-                line += f"  [링크]({c.url})"
-            sections.append(line)
-
     # 유사 처방 (약재 차이 분석 포함)
     if similar:
         sections.append(f"\n### 유사 처방")
@@ -290,6 +267,44 @@ def _format_prescription_detail(p: Prescription, cases: list[Case],
     if p.related:
         sections.append(f"\n### 관련 처방 (본문 링크)")
         sections.append(", ".join(_presc_link(r) for r in p.related))
+
+    # 치험례 — 맨 아래, 접기/펼치기
+    if cases:
+        items = []
+        for i, c in enumerate(cases, 1):
+            info_parts = []
+            if c.patient_age:
+                info_parts.append(c.patient_age)
+            if c.patient_sex:
+                info_parts.append(c.patient_sex)
+            if c.patient_bmi:
+                info_parts.append(f"BMI {c.patient_bmi}")
+            if c.constitution:
+                info_parts.append(c.constitution)
+            patient_info = " / ".join(info_parts) if info_parts else ""
+            symptoms = c.symptoms or c.content[:100]
+            line = f"<div style='padding:6px 0;border-bottom:1px solid var(--mist,#e8e4dc)'>"
+            line += f"<span style='color:#888;margin-right:6px'>{i}.</span>"
+            if patient_info:
+                line += f"<strong>[{patient_info}]</strong> "
+            line += symptoms
+            if c.url:
+                line += f" <a href='{c.url}' target='_blank' style='color:var(--cin,#c0392b);font-size:12px'>[링크]</a>"
+            line += "</div>"
+            items.append(line)
+
+        cases_html = (
+            f"\n<details style='margin-top:24px'>"
+            f"<summary style='cursor:pointer;font-size:16px;font-weight:700;"
+            f"font-family:\"Noto Serif KR\",serif;padding:8px 0;"
+            f"border-bottom:2px solid var(--mist,#e8e4dc);list-style:none'>"
+            f"▶ 치험례 ({len(cases)}건) &nbsp;<span style='font-size:12px;"
+            f"color:#888;font-weight:400'>클릭하여 펼치기/접기</span></summary>"
+            f"<div style='margin-top:8px'>"
+            + "".join(items) +
+            f"</div></details>"
+        )
+        sections.append(cases_html)
 
     return "\n".join(sections)
 
