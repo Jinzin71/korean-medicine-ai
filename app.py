@@ -591,7 +591,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
                     ev_sym.submit(fn=evidence_recommend, inputs=[ev_sym, ev_cands], outputs=ev_out)
 
         # 탭 7 동기화
-        with gr.Tab("📡 동기화"):
+        with gr.Tab("📡 동기화", visible=False):
             sy_disp = gr.HTML(value=sync_status())
             sy_log  = gr.Markdown("")
             with gr.Row():
@@ -601,7 +601,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
                 sy_sync_btn.click(fn=run_sync, inputs=[], outputs=sy_log)
 
         # 탭 8 대시보드
-        with gr.Tab("📊 대시보드"):
+        with gr.Tab("📊 대시보드", visible=False):
             gr.Markdown("### 프로젝트 현황 대시보드\n`dashboard.md` + `work_log.md` 실시간 표시")
             with gr.Tabs():
                 with gr.Tab("작업 현황"):
