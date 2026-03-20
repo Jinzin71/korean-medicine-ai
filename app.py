@@ -113,7 +113,7 @@ def network_html(pid):
         s = html.find("<div id="); e2 = html.rfind("</body>")
         legend = ("<div style='display:flex;gap:16px;padding:8px 16px;font-size:12px;color:#555'>"
                   "<span>🟢 유사도(약재 Jaccard)</span>"
-                  "<span>🔵 플로우차트(한의사 정의)</span>"
+                  "<span>🔵 플로우차트(한약사 정의)</span>"
                   "<span>🔴 기준 처방</span></div>")
         return legend + (html[s:e2] if s>-1 else html)
     except ImportError:
