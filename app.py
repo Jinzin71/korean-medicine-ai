@@ -52,9 +52,9 @@ button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{bac
 .sim-card{border:1px solid var(--mist);border-left:3px solid var(--bamboo);border-radius:8px;padding:16px 20px;margin-bottom:14px;background:white;}
 .presc-link{color:var(--cin);cursor:pointer;text-decoration:underline;font-weight:600;}
 .presc-link:hover{color:#a93226;}
-/* Gradio 5 컴포넌트 레이블 배지 숨김 — label 전체가 아닌 텍스트만 */
+/* Gradio 5 레이블 배지 — textarea/input 없는 label만 숨김 (:has 미지원 브라우저 대비 fallback 포함) */
+.block>label:not(:has(textarea)):not(:has(input)):not(:has(select)){display:none!important;}
 .label-wrap{display:none!important;}
-.block>label>span:first-child{display:none!important;}
 """
 
 # ── 헬퍼 ─────────────────────────────────────────────────────────────────────
