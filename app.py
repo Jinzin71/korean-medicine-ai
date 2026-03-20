@@ -230,6 +230,15 @@ def _profile_html(p):
                 f"<div style='font-size:11px;color:{c};font-weight:600'>{name}</div>"
                 f"<div style='font-size:20px;font-weight:700;color:{c};font-family:\"JetBrains Mono\",monospace'>{pct:.0f}%</div></div>")
 
+    # Python 3.10/3.11 호환: f-string {} 내부에 백슬래시 불가 → 외부에서 미리 계산
+    metrics_html = "".join(
+        '<div style="background:var(--mist);border-radius:6px;padding:8px">'
+        '<div style="font-size:11px;color:var(--slate)">' + n + '</div>'
+        '<div style="font-size:18px;font-weight:700;font-family:\'JetBrains Mono\',monospace;color:var(--ink)">' + str(val) + '</div>'
+        '</div>'
+        for n, val in [("BMI", p.bmi), ("WHR", p.whr), ("흉복비", p.cwr), ("어깨/골반", p.shoulder_hip_ratio)]
+    )
+
     return f"""<div class='card' style='border-left-color:var(--cin)'>
 <h3 style='font-family:"Noto Serif KR",serif;margin-bottom:16px'>🌿 체질 평가 결과</h3>
 <div style='margin-bottom:16px'>
@@ -257,7 +266,7 @@ def _profile_html(p):
 <div style='margin-bottom:14px'>
   <div style='font-size:12px;color:var(--slate);margin-bottom:8px'>체형 지수</div>
   <div style='display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center'>
-    {"".join(f'<div style="background:var(--mist);border-radius:6px;padding:8px"><div style="font-size:11px;color:var(--slate)">{n}</div><div style="font-size:18px;font-weight:700;font-family:\'JetBrains Mono\',monospace;color:var(--ink)">{val}</div></div>' for n,val in [("BMI",p.bmi),("WHR",p.whr),("흉복비",p.cwr),("어깨/골반",p.shoulder_hip_ratio)])}
+    {metrics_html}
   </div>
 </div>
 <div style='margin-bottom:10px'><div style='font-size:12px;color:var(--slate);margin-bottom:5px'>처방 선택 태그</div>{tags}</div>
@@ -512,10 +521,10 @@ with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
                     log_refresh_btn = gr.Button("새로고침", variant="secondary")
                     log_refresh_btn.click(fn=read_worklog, inputs=[], outputs=log_out)
 
-demo.queue()
+    # 처방명 클릭 → 처방 상세 탭 이동 JS (반드시 Blocks 컨텍스트 내부에서 호출)
+    demo.load(fn=None, js=PRESC_LINK_JS)
 
-# PRESC_LINK_JS를 페이지 로드 후 실행 (gr.Blocks(js=) 대신 demo.load 사용)
-demo.load(fn=None, js=PRESC_LINK_JS)
+demo.queue()
 
 if __name__ == "__main__":
     demo.launch(
