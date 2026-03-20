@@ -305,91 +305,106 @@ def ssl(lbl):
 # ── UI ────────────────────────────────────────────────────────────────────────
 PRESC_LINK_JS = """
 (function() {
-    // 출발 탭 기록용
-    window._prescFromTabId = null;
+    // 히스토리 스택: [{type:'tab', tabId:'...'} | {type:'presc', name:'...'}]
+    window._prescHistory = [];
+    window._currentPresc = null;
 
-    function showBackBtn(fromId) {
+    function updateBackBtn() {
         var btn = document.getElementById('back-to-search-btn');
         if (!btn) return;
-        btn.style.display = fromId ? 'inline-flex' : 'none';
-        btn.setAttribute('data-from', fromId || '');
-        // 버튼 라벨: 어느 탭인지 표시
-        var labelMap = {
-            'tab_sym-button': '← 증상 검색 결과로',
-            'tab_herb-button': '← 약재 검색 결과로',
-        };
-        btn.textContent = labelMap[fromId] || '← 검색 결과로';
-    }
-
-    // 뒤로가기 버튼 클릭 핸들러
-    document.addEventListener('click', function(e) {
-        var backBtn = e.target.closest('#back-to-search-btn');
-        if (backBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            var fromId = backBtn.getAttribute('data-from');
-            if (fromId) {
-                var fromTab = document.getElementById(fromId);
-                if (fromTab) fromTab.click();
-            }
-            showBackBtn(null);
+        if (window._prescHistory.length === 0) {
+            btn.style.display = 'none';
             return;
         }
+        btn.style.display = 'inline-flex';
+        var prev = window._prescHistory[window._prescHistory.length - 1];
+        if (prev.type === 'tab') {
+            var labelMap = {
+                'tab_sym-button':  '← 증상 검색 결과로',
+                'tab_herb-button': '← 약재 검색 결과로',
+            };
+            btn.textContent = labelMap[prev.tabId] || '← 검색 결과로';
+        } else {
+            btn.textContent = '← ' + prev.name;
+        }
+    }
 
-        // data-presc 링크 클릭 핸들러
-        var link = e.target.closest('[data-presc]');
-        if (!link) return;
-        e.preventDefault();
-        e.stopPropagation();
-        var name = link.getAttribute('data-presc') || link.textContent.trim();
-
-        // 현재 활성 탭 기록 (증상/약재 탭만)
-        var tracked = ['tab_sym-button', 'tab_herb-button'];
-        var fromId = null;
-        tracked.forEach(function(id) {
-            var el = document.getElementById(id);
-            if (el && (el.classList.contains('selected') || el.getAttribute('aria-selected') === 'true')) {
-                fromId = id;
-            }
-        });
-        window._prescFromTabId = fromId;
-
-        // 처방 상세 탭으로 이동
-        var tabBtn = document.getElementById('tab_detail-button');
-        if (tabBtn) tabBtn.click();
-
-        // 뒤로가기 버튼 표시
-        setTimeout(function() { showBackBtn(fromId); }, 600);
-
-        // 입력란에 처방명 입력 후 검색 실행
+    function fillAndSearch(name) {
         var attempts = 0;
-        function fillAndSearch() {
+        function run() {
             if (attempts++ > 15) return;
             var container = document.getElementById('presc_input');
-            if (!container) { setTimeout(fillAndSearch, 200); return; }
+            if (!container) { setTimeout(run, 200); return; }
             var input = container.querySelector('textarea') || container.querySelector('input');
-            if (!input) { setTimeout(fillAndSearch, 200); return; }
-
-            // Gradio/Svelte 호환 값 설정
-            var setter = Object.getOwnPropertyDescriptor(
-                Object.getPrototypeOf(input), 'value'
-            );
-            if (setter && setter.set) {
-                setter.set.call(input, name);
-            } else {
-                input.value = name;
-            }
-            input.dispatchEvent(new Event('input', {bubbles: true}));
+            if (!input) { setTimeout(run, 200); return; }
+            var setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value');
+            if (setter && setter.set) setter.set.call(input, name);
+            else input.value = name;
+            input.dispatchEvent(new Event('input',  {bubbles: true}));
             input.dispatchEvent(new Event('change', {bubbles: true}));
-
-            // 검색 버튼 클릭
             setTimeout(function() {
                 var btn = document.getElementById('presc_search_btn');
                 if (btn) btn.click();
             }, 400);
         }
-        setTimeout(fillAndSearch, 400);
-    }, true);  // capture phase — Gradio 이벤트보다 먼저 처리
+        setTimeout(run, 400);
+    }
+
+    document.addEventListener('click', function(e) {
+
+        // ── 뒤로가기 버튼 ──────────────────────────────────────
+        if (e.target.closest('#back-to-search-btn')) {
+            e.preventDefault(); e.stopPropagation();
+            if (window._prescHistory.length === 0) return;
+            var prev = window._prescHistory.pop();
+            if (prev.type === 'tab') {
+                // 검색 결과 탭으로 복귀
+                var tabEl = document.getElementById(prev.tabId);
+                if (tabEl) tabEl.click();
+                window._currentPresc = null;
+            } else {
+                // 이전 처방 상세로 복귀
+                window._currentPresc = prev.name;
+                fillAndSearch(prev.name);
+            }
+            updateBackBtn();
+            return;
+        }
+
+        // ── 처방명 링크 클릭 ───────────────────────────────────
+        var link = e.target.closest('[data-presc]');
+        if (!link) return;
+        e.preventDefault(); e.stopPropagation();
+        var name = link.getAttribute('data-presc') || link.textContent.trim();
+
+        // 현재 상태를 스택에 push
+        var detailBtn = document.getElementById('tab_detail-button');
+        var inDetail  = detailBtn && (
+            detailBtn.classList.contains('selected') ||
+            detailBtn.getAttribute('aria-selected') === 'true'
+        );
+        if (inDetail && window._currentPresc) {
+            // 처방 상세 → 처방 상세
+            window._prescHistory.push({ type: 'presc', name: window._currentPresc });
+        } else {
+            // 검색 탭 → 처방 상세
+            var tracked = ['tab_sym-button', 'tab_herb-button'];
+            tracked.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el && (el.classList.contains('selected') ||
+                           el.getAttribute('aria-selected') === 'true')) {
+                    window._prescHistory.push({ type: 'tab', tabId: id });
+                }
+            });
+            // 처방 상세 탭으로 이동
+            if (detailBtn) detailBtn.click();
+        }
+
+        window._currentPresc = name;
+        fillAndSearch(name);
+        setTimeout(updateBackBtn, 600);
+
+    }, true);  // capture phase
 })();
 """
 
