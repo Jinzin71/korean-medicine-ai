@@ -14,6 +14,8 @@ vault_parser.py 로 파싱한 532개 처방 데이터를 활용합니다.
 """
 
 import re
+import statistics
+from collections import Counter
 from typing import Optional
 from prescription_db import PrescriptionDB, Prescription, Case
 from herb_knowledge import (
@@ -92,6 +94,116 @@ def _format_herbs_table(p: Prescription) -> str:
     return "\n\n".join(lines)
 
 
+def _bmi_group_label(bmi: float) -> str:
+    if bmi < 18.5: return "저체중"
+    if bmi < 23.0: return "정상"
+    if bmi < 25.0: return "과체중"
+    return "비만"
+
+
+def _top_keywords(texts: list[str], top_n: int = 6) -> str:
+    """증상 텍스트 목록에서 주요 키워드 추출"""
+    stopwords = {"있음", "없음", "이후", "이상", "정도", "하는", "있는", "없는",
+                 "경우", "등의", "이전", "기간", "때문", "관련", "포함", "다음",
+                 "증상", "환자", "치료", "처방", "복용", "소음인", "태음인", "소양인", "태양인"}
+    tokens: list[str] = []
+    for t in texts:
+        t = re.sub(r"[,\.·\-/\(\)\[\]{}\"'\<\>]", " ", t)
+        for tok in t.split():
+            if len(tok) >= 2 and tok not in stopwords:
+                tokens.append(tok)
+    freq = Counter(tokens).most_common(top_n * 3)
+    # 중복 부분문자열 제거 (짧은 단어가 긴 단어에 포함되면 제외)
+    result = []
+    for word, _ in freq:
+        if not any(word in w and word != w for w, _ in freq[:top_n * 3]):
+            result.append(word)
+        if len(result) >= top_n:
+            break
+    return ", ".join(result) if result else "—"
+
+
+def _bmi_analysis_section(cases: list[Case]) -> str:
+    """치험례 BMI 분포 분석 — 그룹별 증상 패턴 섹션 반환 (N<3이면 빈 문자열)"""
+    bmi_cases: list[tuple[float, Case]] = []
+    for c in cases:
+        try:
+            b = float(c.patient_bmi)
+            if 10.0 <= b <= 45.0:
+                bmi_cases.append((b, c))
+        except (ValueError, TypeError):
+            pass
+
+    n = len(bmi_cases)
+    if n < 3:
+        return ""
+
+    bmis = [b for b, _ in bmi_cases]
+    med  = statistics.median(bmis)
+    mean = statistics.mean(bmis)
+    stdev = statistics.stdev(bmis) if n > 1 else 0.0
+    bmi_min, bmi_max = min(bmis), max(bmis)
+    within_10 = sum(1 for b in bmis if med * 0.9 <= b <= med * 1.1) / n * 100
+    within_20 = sum(1 for b in bmis if med * 0.8 <= b <= med * 1.2) / n * 100
+
+    # 분산 정도 레이블
+    if within_10 >= 60:
+        conc = f"집중형 (±10% 이내 {within_10:.0f}%)"
+    elif within_10 >= 35:
+        conc = f"보통 (±10% 이내 {within_10:.0f}%)"
+    else:
+        conc = f"**분산형** (±10% 이내 {within_10:.0f}%)"
+
+    lines: list[str] = []
+    lines.append("\n### 📊 치험례 BMI 분포")
+    lines.append(
+        f"> **{n}건** | 중앙값 **{med:.1f}** | 평균 {mean:.1f} "
+        f"| 범위 {bmi_min:.1f}–{bmi_max:.1f} | 표준편차 {stdev:.1f} "
+        f"| {conc} | ±20% 이내 {within_20:.0f}%"
+    )
+
+    # 그룹별 분류
+    group_defs = [
+        ("저체중 (<18.5)",  lambda b: b < 18.5),
+        ("정상 (18.5–23)",  lambda b: 18.5 <= b < 23.0),
+        ("과체중 (23–25)",  lambda b: 23.0 <= b < 25.0),
+        ("비만 (≥25)",      lambda b: b >= 25.0),
+    ]
+    groups: dict[str, list[tuple[float, Case]]] = {}
+    for gname, cond in group_defs:
+        gc = [(b, c) for b, c in bmi_cases if cond(b)]
+        if gc:
+            groups[gname] = sorted(gc, key=lambda x: x[0])
+
+    # 그룹이 2개 이상일 때만 상세 테이블
+    if len(groups) >= 2:
+        lines.append("")
+        lines.append("| BMI 그룹 | N | 비율 | 주요 증상 키워드 |")
+        lines.append("|---|:---:|:---:|---|")
+        for gname, gc in groups.items():
+            pct = len(gc) / n * 100
+            syms = [(c.symptoms or c.content or "").strip() for _, c in gc if (c.symptoms or c.content or "").strip()]
+            keywords = _top_keywords(syms, top_n=5)
+            lines.append(f"| {gname} | {len(gc)} | {pct:.0f}% | {keywords} |")
+
+        # 그룹 간 BMI 차이가 크면(분산형) 대표 케이스 예시 추가
+        if within_10 < 40 and n >= 5:
+            lines.append("")
+            lines.append("**그룹별 대표 케이스**")
+            for gname, gc in groups.items():
+                if not gc:
+                    continue
+                lines.append(f"\n*{gname}*")
+                for b, c in gc[:2]:
+                    sym = (c.symptoms or c.content or "").strip()[:70]
+                    age  = c.patient_age or ""
+                    sex  = c.patient_sex or ""
+                    info = f"{age} {sex}".strip()
+                    lines.append(f"- BMI {b:.1f}{('  '+info) if info else ''}: {sym}")
+
+    return "\n".join(lines)
+
+
 def _format_prescription_detail(p: Prescription, cases: list[Case],
                                  similar: list[tuple[Prescription, float]]) -> str:
     """처방 상세 마크다운"""
@@ -105,6 +217,11 @@ def _format_prescription_detail(p: Prescription, cases: list[Case],
 
     if p.section:
         sections.append(f"**분류:** {p.section}")
+
+    # BMI 분포 분석 (치험례 기반) — 상단에 표시
+    bmi_section = _bmi_analysis_section(cases)
+    if bmi_section:
+        sections.append(bmi_section)
 
     # 설명
     if p.description:
