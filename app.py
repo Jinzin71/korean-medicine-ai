@@ -305,17 +305,61 @@ def ssl(lbl):
 # ── UI ────────────────────────────────────────────────────────────────────────
 PRESC_LINK_JS = """
 (function() {
-    // data-presc 속성이 있는 <a> 태그 클릭 핸들러 (이벤트 위임)
+    // 출발 탭 기록용
+    window._prescFromTabId = null;
+
+    function showBackBtn(fromId) {
+        var btn = document.getElementById('back-to-search-btn');
+        if (!btn) return;
+        btn.style.display = fromId ? 'inline-flex' : 'none';
+        btn.setAttribute('data-from', fromId || '');
+        // 버튼 라벨: 어느 탭인지 표시
+        var labelMap = {
+            'tab_sym-button': '← 증상 검색 결과로',
+            'tab_herb-button': '← 약재 검색 결과로',
+        };
+        btn.textContent = labelMap[fromId] || '← 검색 결과로';
+    }
+
+    // 뒤로가기 버튼 클릭 핸들러
     document.addEventListener('click', function(e) {
+        var backBtn = e.target.closest('#back-to-search-btn');
+        if (backBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            var fromId = backBtn.getAttribute('data-from');
+            if (fromId) {
+                var fromTab = document.getElementById(fromId);
+                if (fromTab) fromTab.click();
+            }
+            showBackBtn(null);
+            return;
+        }
+
+        // data-presc 링크 클릭 핸들러
         var link = e.target.closest('[data-presc]');
         if (!link) return;
         e.preventDefault();
         e.stopPropagation();
         var name = link.getAttribute('data-presc') || link.textContent.trim();
 
+        // 현재 활성 탭 기록 (증상/약재 탭만)
+        var tracked = ['tab_sym-button', 'tab_herb-button'];
+        var fromId = null;
+        tracked.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && (el.classList.contains('selected') || el.getAttribute('aria-selected') === 'true')) {
+                fromId = id;
+            }
+        });
+        window._prescFromTabId = fromId;
+
         // 처방 상세 탭으로 이동
         var tabBtn = document.getElementById('tab_detail-button');
         if (tabBtn) tabBtn.click();
+
+        // 뒤로가기 버튼 표시
+        setTimeout(function() { showBackBtn(fromId); }, 600);
 
         // 입력란에 처방명 입력 후 검색 실행
         var attempts = 0;
@@ -356,7 +400,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
     with gr.Tabs():
 
         # 탭 1 증상 검색
-        with gr.Tab("🔍 증상 검색"):
+        with gr.Tab("🔍 증상 검색", elem_id="tab_sym"):
             sym_in = gr.Textbox(label="증상 · 질환 입력", placeholder="예) 만성 기침, 수양성 콧물, 오한", lines=4)
             gr.Examples([["만성 기침, 수양성 콧물, 오한"],["만성 피로, 소화불량"],["60대 남성, 이명, 오후 미열"],["어깨·목 결림, 긴장성 두통"]], inputs=sym_in, label=None)
             sym_out = gr.Markdown(value="*증상을 입력하고 버튼을 클릭하세요.*", label="추천 처방", show_label=False, sanitize_html=False)
@@ -365,7 +409,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
             sym_in.submit(fn=sym_search, inputs=sym_in, outputs=sym_out)
 
         # 탭 2 약재 검색
-        with gr.Tab("🌿 약재 검색"):
+        with gr.Tab("🌿 약재 검색", elem_id="tab_herb"):
             gr.Markdown(
                 "### 약재·처방 구성 기반 검색\n"
                 "- **약재만 입력:** `황기, 당귀, 천궁` → 해당 약재를 포함하는 처방 검색\n"
@@ -401,6 +445,14 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
 
         # (구 탭 2) 처방 상세
         with gr.Tab("📖 처방 상세", elem_id="tab_detail"):
+            gr.HTML(
+                '<button id="back-to-search-btn" style="'
+                'display:none;align-items:center;gap:6px;'
+                'padding:6px 14px;margin-bottom:10px;'
+                'background:#f0f4ff;border:1px solid #c5cae9;border-radius:8px;'
+                'color:#3949ab;font-size:14px;font-weight:600;cursor:pointer;'
+                '" title="이전 검색 결과로 돌아가기">← 검색 결과로</button>'
+            )
             with gr.Row():
                 p_in = gr.Textbox(label="처방명 입력", placeholder="예) 소청룡탕", elem_id="presc_input")
                 p_dd = gr.Dropdown(choices=prescription_names, label="목록에서 선택", interactive=True)
