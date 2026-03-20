@@ -72,8 +72,10 @@ def _symptom_relevance(query: str, p: Prescription, cases: list[Case]) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _presc_link(name: str) -> str:
-    """처방명을 클릭 가능한 HTML 스팬으로 감싸기"""
-    return f'<span class="presc-link" title="클릭하여 상세 보기">{name}</span>'
+    """처방명을 클릭 가능한 HTML 링크로 감싸기 — 인라인 스타일로 확실한 렌더링"""
+    return (f'<a href="javascript:void(0)" data-presc="{name}" '
+            f'style="color:#c0392b;cursor:pointer;text-decoration:underline;font-weight:600" '
+            f'title="클릭하여 상세 보기">{name}</a>')
 
 
 def _linkify_brackets(text: str) -> str:

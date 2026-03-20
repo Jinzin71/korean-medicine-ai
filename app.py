@@ -41,26 +41,38 @@ button.primary:hover,button[data-testid="primary-button"]:hover,.gr-button-prima
 /* Gradio 5.x 버튼 — variant="secondary" */
 button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{background:white!important;color:var(--bamboo)!important;border:1.5px solid var(--bamboo)!important;border-radius:6px!important;cursor:pointer!important;}
 /* Gradio 5.x 마크다운 — 외부 컨테이너만 흰 카드 */
-.prose,.gr-markdown,.output-markdown{background:white!important;border:1px solid var(--mist)!important;border-radius:8px!important;padding:20px 24px!important;font-size:14px!important;line-height:1.8!important;color:var(--ink)!important;min-height:160px!important;}
+.prose,.gr-markdown,.output-markdown{background:white!important;border:1px solid var(--mist)!important;border-radius:8px!important;padding:20px 24px!important;font-size:14px!important;line-height:1.8!important;color:var(--ink)!important;min-height:unset!important;overflow:visible!important;}
 /* 안쪽 markdown-body는 투명 — 이중 박스 방지 */
 .markdown-body{background:transparent!important;border:none!important;padding:0!important;min-height:unset!important;border-radius:0!important;}
+/* 마크다운 출력 내 감싸는 컨테이너들도 투명화 */
+.prose .prose,.gr-markdown .prose,.output-markdown .prose{border:none!important;padding:0!important;background:transparent!important;}
 .prose h2,.prose h3,.gr-markdown h2,.gr-markdown h3{font-family:'Noto Serif KR',serif!important;border-bottom:1px solid var(--mist)!important;padding-bottom:5px!important;margin-top:16px!important;}
 .prose strong,.gr-markdown strong{color:var(--cin)!important;}
 .prose code,.gr-markdown code{background:var(--mist)!important;font-family:'JetBrains Mono',monospace!important;font-size:12px!important;border-radius:3px!important;padding:1px 4px!important;}
 .card{background:white;border:1px solid var(--mist);border-left:3px solid var(--bamboo);border-radius:8px;padding:16px 20px;margin-bottom:10px;}
 .tag{display:inline-block;background:rgba(74,124,89,.08);color:var(--bamboo);border:1px solid rgba(74,124,89,.25);border-radius:12px;padding:2px 10px;font-size:12px;margin:2px 3px;font-family:'JetBrains Mono',monospace;}
 .sim-card{border:1px solid var(--mist);border-left:3px solid var(--bamboo);border-radius:8px;padding:16px 20px;margin-bottom:14px;background:white;}
-.presc-link{color:var(--cin);cursor:pointer;text-decoration:underline;font-weight:600;}
-.presc-link:hover{color:#a93226;}
-/* Gradio 5 레이블 배지 — textarea/input 없는 label만 숨김 */
+/* 처방 링크 — 인라인 스타일 보완 */
+[data-presc]{color:var(--cin)!important;cursor:pointer!important;text-decoration:underline!important;font-weight:600!important;}
+[data-presc]:hover{color:#a93226!important;}
+/* Gradio 5 레이블 배지 완전 제거 — 모든 컴포넌트 label 영역 */
 .block>label:not(:has(textarea)):not(:has(input)):not(:has(select)){display:none!important;}
 .label-wrap{display:none!important;}
-/* 텍스트박스 label 텍스트(span)가 textarea 글자를 침범하지 않도록 처리 */
+/* fallback: :has 미지원 시 Gradio의 레이블 span 직접 숨김 */
+.block>.wrap>label,.block>span.label{display:none!important;}
+/* Gradio 5 내부 label-text, float-label 등 모두 숨김 */
+.float-label,.label-text,.gr-input-label{display:none!important;}
+/* 텍스트박스 label span이 textarea 글자를 침범하지 않도록 — 정적 블록으로 */
 .block>label:has(textarea)>span,.block>label:has(input[type="text"])>span{
   display:block!important;position:static!important;float:none!important;
   font-size:12px!important;color:var(--slate)!important;margin-bottom:4px!important;
   background:transparent!important;padding:0!important;border:none!important;
   box-shadow:none!important;line-height:1.4!important;
+  width:auto!important;max-width:100%!important;
+}
+/* 텍스트박스 내부 label이 absolute 위치잡는 것 방지 */
+.block>label:has(textarea),.block>label:has(input[type="text"]){
+  position:relative!important;display:flex!important;flex-direction:column!important;
 }
 """
 
@@ -292,51 +304,49 @@ def ssl(lbl):
 
 # ── UI ────────────────────────────────────────────────────────────────────────
 PRESC_LINK_JS = """
-document.addEventListener('click', function(e) {
-    var link = e.target.closest('.presc-link');
-    if (!link) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var name = link.textContent.trim();
+(function() {
+    // data-presc 속성이 있는 <a> 태그 클릭 핸들러 (이벤트 위임)
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('[data-presc]');
+        if (!link) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var name = link.getAttribute('data-presc') || link.textContent.trim();
 
-    // 탭 2 (처방 상세) 클릭 — elem_id="tab_detail" → 버튼은 #tab_detail-button
-    var tabBtn = document.getElementById('tab_detail-button');
-    if (tabBtn) {
-        tabBtn.click();
-    }
+        // 처방 상세 탭으로 이동
+        var tabBtn = document.getElementById('tab_detail-button');
+        if (tabBtn) tabBtn.click();
 
-    // 입력란에 처방명 입력 후 검색 실행
-    function fillAndSearch() {
-        var container = document.getElementById('presc_input');
-        if (!container) { setTimeout(fillAndSearch, 200); return; }
-        var input = container.querySelector('textarea') || container.querySelector('input');
-        if (!input) { setTimeout(fillAndSearch, 200); return; }
+        // 입력란에 처방명 입력 후 검색 실행
+        var attempts = 0;
+        function fillAndSearch() {
+            if (attempts++ > 15) return;
+            var container = document.getElementById('presc_input');
+            if (!container) { setTimeout(fillAndSearch, 200); return; }
+            var input = container.querySelector('textarea') || container.querySelector('input');
+            if (!input) { setTimeout(fillAndSearch, 200); return; }
 
-        // React/Gradio 호환 값 설정
-        var nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-            window.HTMLTextAreaElement.prototype, 'value'
-        );
-        if (!nativeInputValueSetter) {
-            nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLInputElement.prototype, 'value'
+            // Gradio/Svelte 호환 값 설정
+            var setter = Object.getOwnPropertyDescriptor(
+                Object.getPrototypeOf(input), 'value'
             );
-        }
-        if (nativeInputValueSetter && nativeInputValueSetter.set) {
-            nativeInputValueSetter.set.call(input, name);
-        } else {
-            input.value = name;
-        }
-        input.dispatchEvent(new Event('input', {bubbles: true}));
-        input.dispatchEvent(new Event('change', {bubbles: true}));
+            if (setter && setter.set) {
+                setter.set.call(input, name);
+            } else {
+                input.value = name;
+            }
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            input.dispatchEvent(new Event('change', {bubbles: true}));
 
-        // 검색 버튼 클릭
-        setTimeout(function() {
-            var btn = document.getElementById('presc_search_btn');
-            if (btn) btn.click();
-        }, 400);
-    }
-    setTimeout(fillAndSearch, 500);
-});
+            // 검색 버튼 클릭
+            setTimeout(function() {
+                var btn = document.getElementById('presc_search_btn');
+                if (btn) btn.click();
+            }, 400);
+        }
+        setTimeout(fillAndSearch, 400);
+    }, true);  // capture phase — Gradio 이벤트보다 먼저 처리
+})();
 """
 
 with gr.Blocks(title="달려라한의", css=CSS) as demo:
