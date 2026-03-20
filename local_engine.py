@@ -239,7 +239,7 @@ def _format_prescription_detail(p: Prescription, cases: list[Case],
     # 치험례
     if cases:
         sections.append(f"\n### 치험례 ({len(cases)}건)")
-        for i, c in enumerate(cases[:10], 1):
+        for i, c in enumerate(cases, 1):
             info_parts = []
             if c.patient_age:
                 info_parts.append(c.patient_age)
