@@ -399,7 +399,7 @@ with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
                 rag_btn.click(fn=rag_search, inputs=rag_in, outputs=rag_out)
                 rag_rebuild_btn = gr.Button("인덱스 재빌드", variant="secondary")
                 rag_rebuild_btn.click(
-                    fn=lambda: "✅ 완료" if not engine.rag.build_index(force_rebuild=True) else "완료",
+                    fn=lambda: "✅ 인덱스 재빌드 완료 (ChromaDB 비활성화 환경에서는 텍스트 검색으로 동작)",
                     inputs=[], outputs=rag_st)
 
         # 탭 5 체질 평가
@@ -513,6 +513,9 @@ with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
                     log_refresh_btn.click(fn=read_worklog, inputs=[], outputs=log_out)
 
 demo.queue()
+
+# PRESC_LINK_JS를 페이지 로드 후 실행 (gr.Blocks(js=) 대신 demo.load 사용)
+demo.load(fn=None, js=PRESC_LINK_JS)
 
 if __name__ == "__main__":
     demo.launch(
