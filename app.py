@@ -56,7 +56,7 @@ button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{bac
 """
 
 # ── 헬퍼 ─────────────────────────────────────────────────────────────────────
-HDR = '<div class="hdr"><div class="hdr-t">韓醫處方 AI</div><div class="hdr-s">한의처방 지식 검색 및 추천 시스템 v0.4</div></div>'
+HDR = '<div class="hdr"><div class="hdr-t">달려라한의</div><div class="hdr-s">제작자 : 경희13 김진영 한약사</div></div>'
 
 def network_html(pid):
     try:
@@ -330,7 +330,7 @@ document.addEventListener('click', function(e) {
 });
 """
 
-with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
+with gr.Blocks(title="달려라한의", css=CSS) as demo:
 
     gr.HTML(HDR)
 
