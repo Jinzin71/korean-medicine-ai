@@ -1,0 +1,48 @@
+# Secrets & config
+band_config.yaml
+band_token.json
+.env
+
+# Local tracking
+seen_posts.json
+work_log.md
+dashboard.md
+dashboard.html
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Vector DB (rebuild on startup)
+chroma_db/
+
+# Editor / Obsidian metadata
+.claude/
+.obsidian/
+.makemd/
+.space/
+.trash/
+
+# Data artifacts
+context.mdb
+lib/
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Unused modules (local-only)
+claude_engine.py
+paper_search.py
+band_api.py
+band_sync.py
+project_status.py
+
+# Non-essential folders
+Spaces/
+약재/
+참고자료/

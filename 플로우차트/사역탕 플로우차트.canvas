@@ -1,0 +1,15 @@
+{
+	"nodes":[
+		{"id":"c643db68686e9eb1","type":"text","text":"[[상통-008 사역탕]]","x":-143,"y":-437,"width":183,"height":57},
+		{"id":"3b6f05124bc24e37","type":"text","text":"백통탕","x":-112,"y":-340,"width":121,"height":56},
+		{"id":"b238648f7a14db36","type":"text","text":"부자갱미탕","x":-346,"y":-220,"width":154,"height":50},
+		{"id":"fad4366ba0fa17bd","type":"text","text":"도화탕","x":-325,"y":-140,"width":112,"height":50},
+		{"id":"3bd70b0858e552ad","type":"text","text":"[[하통-136 반총산]]","x":-149,"y":-220,"width":196,"height":50}
+	],
+	"edges":[
+		{"id":"b9d421e125b393b1","fromNode":"3bd70b0858e552ad","fromSide":"left","toNode":"b238648f7a14db36","toSide":"right"},
+		{"id":"7ed8b094ba12840f","fromNode":"b238648f7a14db36","fromSide":"bottom","toNode":"fad4366ba0fa17bd","toSide":"top"},
+		{"id":"30cef9c0fa358ea9","fromNode":"c643db68686e9eb1","fromSide":"bottom","toNode":"3b6f05124bc24e37","toSide":"top"},
+		{"id":"304a71219e974cc1","fromNode":"3b6f05124bc24e37","fromSide":"bottom","toNode":"3bd70b0858e552ad","toSide":"top"}
+	]
+}
