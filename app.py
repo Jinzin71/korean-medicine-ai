@@ -58,7 +58,7 @@ button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{bac
 """
 
 # ── 헬퍼 ─────────────────────────────────────────────────────────────────────
-HDR = '<div class="hdr"><div class="hdr-t">달려라한의</div><div class="hdr-s">제작자 : 경희13 김진영 한약사</div></div>'
+HDR = '<div class="hdr"><div class="hdr-t">달려라한의</div><div class="hdr-s">제작자 : 태극학회 김진영 한약사</div></div>'
 
 def network_html(pid):
     try:
