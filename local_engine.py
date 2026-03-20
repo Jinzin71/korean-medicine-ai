@@ -76,6 +76,20 @@ def _presc_link(name: str) -> str:
     return f'<span class="presc-link" title="클릭하여 상세 보기">{name}</span>'
 
 
+def _linkify_brackets(text: str) -> str:
+    """[[코드 처방명]] 또는 [[처방명]] → 클릭 가능한 링크로 변환"""
+    def _replace(m):
+        inner = m.group(1).strip()
+        # "상통-006-001 치중탕" → 처방명만 추출
+        parts = inner.split()
+        if len(parts) >= 2 and re.match(r'(상통|중통|하통)-\d+', parts[0]):
+            name = " ".join(parts[1:])
+        else:
+            name = inner
+        return _presc_link(name)
+    return re.sub(r'\[\[([^\]]+)\]\]', _replace, text)
+
+
 def _format_herbs_table(p: Prescription) -> str:
     """약재 구성 — 같은 용량끼리 묶어서 한눈에 표시"""
     if not p.herbs_detail:
@@ -223,9 +237,9 @@ def _format_prescription_detail(p: Prescription, cases: list[Case],
     if bmi_section:
         sections.append(bmi_section)
 
-    # 설명
+    # 설명 — [[코드 처방명]] → 인라인 클릭 링크 변환
     if p.description:
-        sections.append(f"\n### 처방 설명\n{p.description}")
+        sections.append(f"\n### 처방 설명\n{_linkify_brackets(p.description)}")
 
     # 약재 구성
     sections.append(f"\n### 구성 약재 ({len(p.herbs)}종)")
@@ -263,10 +277,7 @@ def _format_prescription_detail(p: Prescription, cases: list[Case],
             sections.append(f"\n{analysis}")
             sections.append('</div>')
 
-    # 관련 처방
-    if p.related:
-        sections.append(f"\n### 관련 처방 (본문 링크)")
-        sections.append(", ".join(_presc_link(r) for r in p.related))
+    # 관련 처방 — 본문 [[링크]]에서 이미 인라인 처리됨, 별도 섹션 불필요
 
     # 치험례 — 맨 아래, 접기/펼치기
     if cases:
@@ -392,20 +403,22 @@ def _format_similar_analysis(target: Prescription, similar: list[tuple[Prescript
         sections.append(f"**주된 치료 방향:** {' + '.join(main_descs)}")
     sections.append("")
 
-    # 비교 테이블
+    # 비교 테이블 — HTML 카드 형식 (처방명 클릭 링크 지원)
     sections.append("### 약재 가감 비교\n")
-    sections.append("| 유사 처방 | 유사도 | 공통 약재 | 추가된 약재 | 빠진 약재 |")
-    sections.append("|-----------|--------|-----------|-------------|-----------|")
-
     for sp, score in similar:
         shared = sorted(set(target.herbs) & set(sp.herbs))
         added = sorted(set(sp.herbs) - set(target.herbs))
         removed = sorted(set(target.herbs) - set(sp.herbs))
+        shared_str = ', '.join(shared[:5]) + ('...' if len(shared) > 5 else '')
+        added_str = ', '.join(added) if added else '-'
+        removed_str = ', '.join(removed) if removed else '-'
         sections.append(
-            f"| {_presc_link(sp.name)} | {score:.0%} | "
-            f"{', '.join(shared[:5])}{'...' if len(shared)>5 else ''} | "
-            f"{', '.join(added) if added else '-'} | "
-            f"{', '.join(removed) if removed else '-'} |"
+            f'<div class="sim-card">'
+            f'{_presc_link(sp.name)} <span style="color:var(--slate);font-size:13px">(유사도 {score:.0%})</span><br>'
+            f'<span style="font-size:13px">공통: {shared_str} · '
+            f'<span style="color:var(--bamboo)">+{added_str}</span> · '
+            f'<span style="color:var(--cin)">-{removed_str}</span></span>'
+            f'</div>'
         )
 
     # ── 각 처방 상세 비교 + 기능 분석 ──

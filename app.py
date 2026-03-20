@@ -52,9 +52,16 @@ button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{bac
 .sim-card{border:1px solid var(--mist);border-left:3px solid var(--bamboo);border-radius:8px;padding:16px 20px;margin-bottom:14px;background:white;}
 .presc-link{color:var(--cin);cursor:pointer;text-decoration:underline;font-weight:600;}
 .presc-link:hover{color:#a93226;}
-/* Gradio 5 레이블 배지 — textarea/input 없는 label만 숨김 (:has 미지원 브라우저 대비 fallback 포함) */
+/* Gradio 5 레이블 배지 — textarea/input 없는 label만 숨김 */
 .block>label:not(:has(textarea)):not(:has(input)):not(:has(select)){display:none!important;}
 .label-wrap{display:none!important;}
+/* 텍스트박스 label 텍스트(span)가 textarea 글자를 침범하지 않도록 처리 */
+.block>label:has(textarea)>span,.block>label:has(input[type="text"])>span{
+  display:block!important;position:static!important;float:none!important;
+  font-size:12px!important;color:var(--slate)!important;margin-bottom:4px!important;
+  background:transparent!important;padding:0!important;border:none!important;
+  box-shadow:none!important;line-height:1.4!important;
+}
 """
 
 # ── 헬퍼 ─────────────────────────────────────────────────────────────────────
@@ -345,6 +352,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
             sym_out = gr.Markdown(value="*증상을 입력하고 버튼을 클릭하세요.*", label="추천 처방", show_label=False, sanitize_html=False)
             sym_btn = gr.Button("처방 추천 받기", variant="primary")
             sym_btn.click(fn=sym_search, inputs=sym_in, outputs=sym_out)
+            sym_in.submit(fn=sym_search, inputs=sym_in, outputs=sym_out)
 
         # 탭 2 약재 검색
         with gr.Tab("🌿 약재 검색"):
@@ -379,6 +387,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
             )
             herb_btn = gr.Button("약재로 처방 검색", variant="primary")
             herb_btn.click(fn=herb_search, inputs=herb_in, outputs=herb_out)
+            herb_in.submit(fn=herb_search, inputs=herb_in, outputs=herb_out)
 
         # (구 탭 2) 처방 상세
         with gr.Tab("📖 처방 상세", elem_id="tab_detail"):
@@ -389,6 +398,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
             presc_btn = gr.Button("상세 검색", variant="primary", elem_id="presc_search_btn")
             p_out = gr.Markdown(value="*처방명을 입력하세요.*", label="처방 해설", show_label=False, sanitize_html=False)
             presc_btn.click(fn=presc_search, inputs=p_in, outputs=p_out)
+            p_in.submit(fn=presc_search, inputs=p_in, outputs=p_out)
 
         # 탭 3 유사 처방
         with gr.Tab("🔗 유사 처방"):
@@ -411,6 +421,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
                 rag_rebuild_btn.click(
                     fn=lambda: "✅ 인덱스 재빌드 완료 (ChromaDB 비활성화 환경에서는 텍스트 검색으로 동작)",
                     inputs=[], outputs=rag_st)
+            rag_in.submit(fn=rag_search, inputs=rag_in, outputs=rag_out)
 
         # 탭 5 체질 평가
         with gr.Tab("📊 체질 평가"):
@@ -492,12 +503,14 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
                     pp_out = gr.Markdown(value="*처방과 질환을 선택하세요.*", label="임상 근거", show_label=False)
                     paper_btn = gr.Button("논문 검색", variant="primary")
                     paper_btn.click(fn=paper_search_handler, inputs=[pp_dd, pp_cond], outputs=pp_out)
+                    pp_cond.submit(fn=paper_search_handler, inputs=[pp_dd, pp_cond], outputs=pp_out)
                 with gr.Tab("증상 기반 근거 추천"):
                     ev_sym = gr.Textbox(label="증상", placeholder="예) 알레르기 비염, 맑은 콧물, 재채기, 봄철 악화", lines=3)
                     ev_cands = gr.Textbox(label="검색 처방 목록 (쉼표 구분, 비워두면 자동)", placeholder="예) 소청룡탕, 형방패독산")
                     ev_out = gr.Markdown(value="*증상을 입력하세요.*", label="근거 기반 추천", show_label=False)
                     ev_btn = gr.Button("근거 기반 추천", variant="primary")
                     ev_btn.click(fn=evidence_recommend, inputs=[ev_sym, ev_cands], outputs=ev_out)
+                    ev_sym.submit(fn=evidence_recommend, inputs=[ev_sym, ev_cands], outputs=ev_out)
 
         # 탭 7 동기화
         with gr.Tab("📡 동기화"):
