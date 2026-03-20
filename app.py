@@ -40,8 +40,10 @@ button.primary,button[data-testid="primary-button"],.gr-button-primary{backgroun
 button.primary:hover,button[data-testid="primary-button"]:hover,.gr-button-primary:hover{background:#a93226!important;transform:translateY(-1px)!important;}
 /* Gradio 5.x 버튼 — variant="secondary" */
 button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{background:white!important;color:var(--bamboo)!important;border:1.5px solid var(--bamboo)!important;border-radius:6px!important;cursor:pointer!important;}
-/* Gradio 5.x 마크다운 */
-.prose,.gr-markdown,.markdown-body,.output-markdown{background:white!important;border:1px solid var(--mist)!important;border-radius:8px!important;padding:20px 24px!important;font-size:14px!important;line-height:1.8!important;color:var(--ink)!important;min-height:160px!important;}
+/* Gradio 5.x 마크다운 — 외부 컨테이너만 흰 카드 */
+.prose,.gr-markdown,.output-markdown{background:white!important;border:1px solid var(--mist)!important;border-radius:8px!important;padding:20px 24px!important;font-size:14px!important;line-height:1.8!important;color:var(--ink)!important;min-height:160px!important;}
+/* 안쪽 markdown-body는 투명 — 이중 박스 방지 */
+.markdown-body{background:transparent!important;border:none!important;padding:0!important;min-height:unset!important;border-radius:0!important;}
 .prose h2,.prose h3,.gr-markdown h2,.gr-markdown h3{font-family:'Noto Serif KR',serif!important;border-bottom:1px solid var(--mist)!important;padding-bottom:5px!important;margin-top:16px!important;}
 .prose strong,.gr-markdown strong{color:var(--cin)!important;}
 .prose code,.gr-markdown code{background:var(--mist)!important;font-family:'JetBrains Mono',monospace!important;font-size:12px!important;border-radius:3px!important;padding:1px 4px!important;}
