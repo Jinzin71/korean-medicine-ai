@@ -1,0 +1,26 @@
+name: Sync to HF Spaces
+
+on:
+  push:
+    branches:
+      - master
+      - "claude/**"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to HF Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/magicians7/korean-medicine-ai
+          git push hf HEAD:main --force
