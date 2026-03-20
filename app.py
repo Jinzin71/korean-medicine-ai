@@ -313,7 +313,7 @@ document.addEventListener('click', function(e) {
 });
 """
 
-with gr.Blocks(title="한의처방 AI") as demo:
+with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
 
     gr.HTML(HDR)
 
@@ -327,7 +327,7 @@ with gr.Blocks(title="한의처방 AI") as demo:
             gr.Button("처방 추천 받기", variant="primary").click(sym_search, sym_in, sym_out)
 
         # 탭 2 처방 상세
-        with gr.Tab("📖 처방 상세", elem_id="tab_detail", render_children=True):
+        with gr.Tab("📖 처방 상세", elem_id="tab_detail"):
             with gr.Row():
                 p_in = gr.Textbox(label="처방명 입력", placeholder="예) 소청룡탕", elem_id="presc_input")
                 p_dd = gr.Dropdown(choices=prescription_names, label="목록에서 선택", interactive=True)
@@ -463,10 +463,4 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0", server_port=7860,
         inbrowser=not IS_HF_SPACES,
-        css=CSS,
-        js=PRESC_LINK_JS,
-        theme=gr.themes.Base(
-            font=gr.themes.GoogleFont("Noto Sans KR"),
-            primary_hue="red", neutral_hue="slate",
-        ),
     )
