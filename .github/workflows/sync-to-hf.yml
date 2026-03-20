@@ -23,4 +23,5 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/magicians7/korean-medicine-ai
-          git push hf HEAD:main --force
+          # HF Spaces 기본 브랜치가 main 또는 master일 수 있으므로 둘 다 시도
+          git push hf HEAD:main --force || git push hf HEAD:master --force
