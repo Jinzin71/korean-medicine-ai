@@ -128,45 +128,40 @@ def read_worklog(lines=50):
     return "*work_log.md 파일을 찾을 수 없습니다.*"
 
 # ── 핸들러 ────────────────────────────────────────────────────────────────────
+# generator(yield) 대신 일반 return 함수 사용 — Gradio 5.x HF Spaces 호환
+
 def sym_search(q):
-    if not q.strip(): yield "증상을 입력해주세요."; return
-    r=""
-    for c in engine.recommend_by_symptom(q): r+=c; yield r
+    if not q.strip(): return "증상을 입력해주세요."
+    return "".join(engine.recommend_by_symptom(q))
 
 def herb_search(q):
-    if not q.strip(): yield "약재명 또는 처방명을 입력해주세요."; return
-    r=""
-    for c in engine.search_by_herbs(q): r+=c; yield r
+    if not q.strip(): return "약재명 또는 처방명을 입력해주세요."
+    return "".join(engine.search_by_herbs(q))
 
 def presc_search(n):
-    if not n.strip(): yield "처방명을 입력해주세요."; return
-    r=""
-    for c in engine.search_prescription(n): r+=c; yield r
+    if not n.strip(): return "처방명을 입력해주세요."
+    return "".join(engine.search_prescription(n))
 
 def sim_analysis(pid):
-    if not pid: yield "","<p style='color:#888;padding:20px'>처방을 선택하세요.</p>"; return
-    g=network_html(pid); r=""
-    for c in engine.analyze_similar(pid): r+=c; yield r,g
+    if not pid: return "", "<p style='color:#888;padding:20px'>처방을 선택하세요.</p>"
+    return "".join(engine.analyze_similar(pid)), network_html(pid)
 
 def rag_search(q):
-    if not q.strip(): yield "증상을 입력해주세요."; return
-    r=""
-    for c in engine.search_by_case_rag(q): r+=c; yield r
+    if not q.strip(): return "증상을 입력해주세요."
+    return "".join(engine.search_by_case_rag(q))
 
 def paper_search_handler(presc, cond):
     if not presc or not cond:
-        yield "처방명과 질환명을 모두 입력해주세요."
-        return
+        return "처방명과 질환명을 모두 입력해주세요."
     from pubmed_search import search_pubmed
-    yield search_pubmed(presc, cond)
+    return search_pubmed(presc, cond)
 
 def evidence_recommend(syms, cands_text):
     if not syms.strip():
-        yield "증상을 입력해주세요."
-        return
+        return "증상을 입력해주세요."
     from pubmed_search import search_pubmed_by_symptom
     cands = [c.strip() for c in cands_text.split(",") if c.strip()] if cands_text else None
-    yield search_pubmed_by_symptom(syms, cands, engine.db)
+    return search_pubmed_by_symptom(syms, cands, engine.db)
 
 def run_sync():
     if IS_HF_SPACES:
