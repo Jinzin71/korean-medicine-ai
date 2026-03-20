@@ -322,6 +322,7 @@ PRESC_LINK_JS = """
             var labelMap = {
                 'tab_sym-button':  '← 증상 검색 결과로',
                 'tab_herb-button': '← 약재 검색 결과로',
+                'tab_sim-button':  '← 유사 처방 결과로',
             };
             btn.textContent = labelMap[prev.tabId] || '← 검색 결과로';
         } else {
@@ -388,7 +389,7 @@ PRESC_LINK_JS = """
             window._prescHistory.push({ type: 'presc', name: window._currentPresc });
         } else {
             // 검색 탭 → 처방 상세
-            var tracked = ['tab_sym-button', 'tab_herb-button'];
+            var tracked = ['tab_sym-button', 'tab_herb-button', 'tab_sim-button'];
             tracked.forEach(function(id) {
                 var el = document.getElementById(id);
                 if (el && (el.classList.contains('selected') ||
@@ -478,7 +479,7 @@ with gr.Blocks(title="달려라한의", css=CSS) as demo:
             p_in.submit(fn=presc_search, inputs=p_in, outputs=p_out)
 
         # 탭 3 유사 처방
-        with gr.Tab("🔗 유사 처방"):
+        with gr.Tab("🔗 유사 처방", elem_id="tab_sim"):
             sim_dd = gr.Dropdown(choices=prescription_names, label="기준 처방", interactive=True)
             sim_btn = gr.Button("유사 처방 분석", variant="primary")
             with gr.Row():
