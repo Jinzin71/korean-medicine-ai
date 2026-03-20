@@ -29,17 +29,22 @@ body,.gradio-container{background:var(--rice)!important;font-family:'Noto Sans K
 .hdr{background:var(--ink);padding:24px 36px 20px;margin:-8px -8px 16px;display:flex;align-items:baseline;gap:16px;border-bottom:3px solid var(--gold);}
 .hdr-t{font-family:'Noto Serif KR',serif;font-size:21px;font-weight:700;color:#f5f0e8;letter-spacing:2px;}
 .hdr-s{font-size:11px;color:var(--gold);font-family:'JetBrains Mono',monospace;}
-.tab-nav button{font-family:'Noto Serif KR',serif!important;font-size:13px!important;color:var(--slate)!important;border-bottom:2px solid transparent!important;padding:9px 15px!important;background:transparent!important;transition:all .2s!important;}
-.tab-nav button.selected,.tab-nav button:hover{color:var(--cin)!important;border-bottom-color:var(--cin)!important;}
-.gr-textbox textarea,.gr-textbox input{background:white!important;border:1.5px solid var(--mist)!important;border-radius:6px!important;font-size:14px!important;color:var(--ink)!important;}
-.gr-textbox textarea:focus,.gr-textbox input:focus{border-color:var(--bamboo)!important;box-shadow:0 0 0 3px rgba(74,124,89,.1)!important;}
-.gr-button.primary{background:var(--cin)!important;color:white!important;border:none!important;border-radius:6px!important;font-family:'Noto Serif KR',serif!important;font-size:14px!important;font-weight:600!important;padding:10px 26px!important;box-shadow:0 2px 8px rgba(192,57,43,.3)!important;}
-.gr-button.primary:hover{background:#a93226!important;transform:translateY(-1px)!important;}
-.gr-button.secondary{background:white!important;color:var(--bamboo)!important;border:1.5px solid var(--bamboo)!important;border-radius:6px!important;}
-.gr-markdown{background:white!important;border:1px solid var(--mist)!important;border-radius:8px!important;padding:20px 24px!important;font-size:14px!important;line-height:1.8!important;color:var(--ink)!important;min-height:160px!important;}
-.gr-markdown h2,.gr-markdown h3{font-family:'Noto Serif KR',serif!important;border-bottom:1px solid var(--mist)!important;padding-bottom:5px!important;margin-top:16px!important;}
-.gr-markdown strong{color:var(--cin)!important;}
-.gr-markdown code{background:var(--mist)!important;font-family:'JetBrains Mono',monospace!important;font-size:12px!important;border-radius:3px!important;padding:1px 4px!important;}
+/* Gradio 5.x 탭 네비게이션 */
+.tab-nav button,div.tabs > div.tab-nav > button{font-family:'Noto Serif KR',serif!important;font-size:13px!important;color:var(--slate)!important;border-bottom:2px solid transparent!important;padding:9px 15px!important;background:transparent!important;transition:all .2s!important;}
+.tab-nav button.selected,.tab-nav button:hover,div.tabs > div.tab-nav > button.selected,div.tabs > div.tab-nav > button:hover{color:var(--cin)!important;border-bottom-color:var(--cin)!important;}
+/* Gradio 5.x 텍스트박스 */
+textarea,input[type="text"]{background:white!important;border:1.5px solid var(--mist)!important;border-radius:6px!important;font-size:14px!important;color:var(--ink)!important;}
+textarea:focus,input[type="text"]:focus{border-color:var(--bamboo)!important;box-shadow:0 0 0 3px rgba(74,124,89,.1)!important;}
+/* Gradio 5.x 버튼 — variant="primary" */
+button.primary,button[data-testid="primary-button"],.gr-button-primary{background:var(--cin)!important;color:white!important;border:none!important;border-radius:6px!important;font-family:'Noto Serif KR',serif!important;font-size:14px!important;font-weight:600!important;padding:10px 26px!important;box-shadow:0 2px 8px rgba(192,57,43,.3)!important;cursor:pointer!important;}
+button.primary:hover,button[data-testid="primary-button"]:hover,.gr-button-primary:hover{background:#a93226!important;transform:translateY(-1px)!important;}
+/* Gradio 5.x 버튼 — variant="secondary" */
+button.secondary,button[data-testid="secondary-button"],.gr-button-secondary{background:white!important;color:var(--bamboo)!important;border:1.5px solid var(--bamboo)!important;border-radius:6px!important;cursor:pointer!important;}
+/* Gradio 5.x 마크다운 */
+.prose,.gr-markdown,.markdown-body,.output-markdown{background:white!important;border:1px solid var(--mist)!important;border-radius:8px!important;padding:20px 24px!important;font-size:14px!important;line-height:1.8!important;color:var(--ink)!important;min-height:160px!important;}
+.prose h2,.prose h3,.gr-markdown h2,.gr-markdown h3{font-family:'Noto Serif KR',serif!important;border-bottom:1px solid var(--mist)!important;padding-bottom:5px!important;margin-top:16px!important;}
+.prose strong,.gr-markdown strong{color:var(--cin)!important;}
+.prose code,.gr-markdown code{background:var(--mist)!important;font-family:'JetBrains Mono',monospace!important;font-size:12px!important;border-radius:3px!important;padding:1px 4px!important;}
 .card{background:white;border:1px solid var(--mist);border-left:3px solid var(--bamboo);border-radius:8px;padding:16px 20px;margin-bottom:10px;}
 .tag{display:inline-block;background:rgba(74,124,89,.08);color:var(--bamboo);border:1px solid rgba(74,124,89,.25);border-radius:12px;padding:2px 10px;font-size:12px;margin:2px 3px;font-family:'JetBrains Mono',monospace;}
 .sim-card{border:1px solid var(--mist);border-left:3px solid var(--bamboo);border-radius:8px;padding:16px 20px;margin-bottom:14px;background:white;}
@@ -313,7 +318,7 @@ document.addEventListener('click', function(e) {
 });
 """
 
-with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
+with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
 
     gr.HTML(HDR)
 
@@ -324,17 +329,18 @@ with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
             sym_in = gr.Textbox(label="증상 · 질환 입력", placeholder="예) 만성 기침, 수양성 콧물, 오한", lines=4)
             gr.Examples([["만성 기침, 수양성 콧물, 오한"],["만성 피로, 소화불량"],["60대 남성, 이명, 오후 미열"],["어깨·목 결림, 긴장성 두통"]], inputs=sym_in, label="예시")
             sym_out = gr.Markdown(value="*증상을 입력하고 버튼을 클릭하세요.*", label="추천 처방", sanitize_html=False)
-            gr.Button("처방 추천 받기", variant="primary").click(sym_search, sym_in, sym_out)
+            sym_btn = gr.Button("처방 추천 받기", variant="primary")
+            sym_btn.click(fn=sym_search, inputs=sym_in, outputs=sym_out)
 
         # 탭 2 처방 상세
         with gr.Tab("📖 처방 상세", elem_id="tab_detail"):
             with gr.Row():
                 p_in = gr.Textbox(label="처방명 입력", placeholder="예) 소청룡탕", elem_id="presc_input")
                 p_dd = gr.Dropdown(choices=prescription_names, label="목록에서 선택", interactive=True)
-            p_dd.change(lambda x:x, p_dd, p_in)
+            p_dd.change(fn=lambda x: x, inputs=p_dd, outputs=p_in)
             presc_btn = gr.Button("상세 검색", variant="primary", elem_id="presc_search_btn")
             p_out = gr.Markdown(value="*처방명을 입력하세요.*", label="처방 해설", sanitize_html=False)
-            presc_btn.click(presc_search, p_in, p_out)
+            presc_btn.click(fn=presc_search, inputs=p_in, outputs=p_out)
 
         # 탭 3 유사 처방
         with gr.Tab("🔗 유사 처방"):
@@ -343,7 +349,7 @@ with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
             with gr.Row():
                 sim_out = gr.Markdown(value="*처방을 선택하세요.*", label="비교 분석", sanitize_html=False)
                 net_out = gr.HTML(value="<p style='color:#888;padding:20px'>선택 후 표시</p>", label="네트워크")
-            sim_btn.click(sim_analysis, sim_dd, [sim_out, net_out])
+            sim_btn.click(fn=sim_analysis, inputs=sim_dd, outputs=[sim_out, net_out])
 
         # 탭 4 치험례 RAG
         with gr.Tab("🧪 치험례 RAG"):
@@ -351,9 +357,12 @@ with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
             rag_out = gr.Markdown(value="*증상을 입력하세요.*", label="치험례 기반 추천", sanitize_html=False)
             rag_st  = gr.Markdown("")
             with gr.Row():
-                gr.Button("치험례 검색", variant="primary").click(rag_search, rag_in, rag_out)
-                gr.Button("인덱스 재빌드", variant="secondary").click(
-                    lambda: "✅ 완료" if not engine.rag.build_index(force_rebuild=True) else "완료", outputs=rag_st)
+                rag_btn = gr.Button("치험례 검색", variant="primary")
+                rag_btn.click(fn=rag_search, inputs=rag_in, outputs=rag_out)
+                rag_rebuild_btn = gr.Button("인덱스 재빌드", variant="secondary")
+                rag_rebuild_btn.click(
+                    fn=lambda: "✅ 완료" if not engine.rag.build_index(force_rebuild=True) else "완료",
+                    inputs=[], outputs=rag_st)
 
         # 탭 5 체질 평가
         with gr.Tab("📊 체질 평가"):
@@ -422,7 +431,7 @@ with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
                 g_apt,g_dig,g_stool,g_sfreq,g_sleepq,g_sleeph,g_bloat,
                 g_s1,g_s2,g_s3,g_s4,g_s5,g_s6,g_s7,g_s8,g_s9,g_s10,g_s11,g_s12,g_s13,g_s14,g_s15,
             ]
-            assess_btn.click(assess_handler, inputs=all_inputs, outputs=[prof_html, prof_text])
+            assess_btn.click(fn=assess_handler, inputs=all_inputs, outputs=[prof_html, prof_text])
 
         # 탭 6 임상논문
         with gr.Tab("📰 임상논문 근거"):
@@ -433,20 +442,24 @@ with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
                         pp_dd = gr.Dropdown(choices=prescription_names, label="처방 선택", interactive=True)
                         pp_cond = gr.Textbox(label="질환명 / 증상", placeholder="예) 알레르기 비염, 만성 기침")
                     pp_out = gr.Markdown(value="*처방과 질환을 선택하세요.*", label="임상 근거")
-                    gr.Button("논문 검색", variant="primary").click(paper_search_handler, [pp_dd, pp_cond], pp_out)
+                    paper_btn = gr.Button("논문 검색", variant="primary")
+                    paper_btn.click(fn=paper_search_handler, inputs=[pp_dd, pp_cond], outputs=pp_out)
                 with gr.Tab("증상 기반 근거 추천"):
                     ev_sym = gr.Textbox(label="증상", placeholder="예) 알레르기 비염, 맑은 콧물, 재채기, 봄철 악화", lines=3)
                     ev_cands = gr.Textbox(label="검색 처방 목록 (쉼표 구분, 비워두면 자동)", placeholder="예) 소청룡탕, 형방패독산")
                     ev_out = gr.Markdown(value="*증상을 입력하세요.*", label="근거 기반 추천")
-                    gr.Button("근거 기반 추천", variant="primary").click(evidence_recommend, [ev_sym, ev_cands], ev_out)
+                    ev_btn = gr.Button("근거 기반 추천", variant="primary")
+                    ev_btn.click(fn=evidence_recommend, inputs=[ev_sym, ev_cands], outputs=ev_out)
 
         # 탭 7 동기화
         with gr.Tab("📡 동기화"):
             sy_disp = gr.HTML(value=sync_status())
             sy_log  = gr.Markdown("")
             with gr.Row():
-                gr.Button("새로고침", variant="secondary").click(sync_status, outputs=sy_disp)
-                gr.Button("지금 동기화", variant="primary").click(run_sync, outputs=sy_log)
+                sy_refresh_btn = gr.Button("새로고침", variant="secondary")
+                sy_refresh_btn.click(fn=sync_status, inputs=[], outputs=sy_disp)
+                sy_sync_btn = gr.Button("지금 동기화", variant="primary")
+                sy_sync_btn.click(fn=run_sync, inputs=[], outputs=sy_log)
 
         # 탭 8 대시보드
         with gr.Tab("📊 대시보드"):
@@ -454,10 +467,14 @@ with gr.Blocks(title="한의처방 AI", css=CSS, js=PRESC_LINK_JS) as demo:
             with gr.Tabs():
                 with gr.Tab("작업 현황"):
                     dash_out = gr.Markdown(value=read_dashboard())
-                    gr.Button("새로고침", variant="secondary").click(read_dashboard, outputs=dash_out)
+                    dash_refresh_btn = gr.Button("새로고침", variant="secondary")
+                    dash_refresh_btn.click(fn=read_dashboard, inputs=[], outputs=dash_out)
                 with gr.Tab("작업 로그"):
                     log_out = gr.Markdown(value=read_worklog())
-                    gr.Button("새로고침", variant="secondary").click(read_worklog, outputs=log_out)
+                    log_refresh_btn = gr.Button("새로고침", variant="secondary")
+                    log_refresh_btn.click(fn=read_worklog, inputs=[], outputs=log_out)
+
+demo.queue()
 
 if __name__ == "__main__":
     demo.launch(
