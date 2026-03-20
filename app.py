@@ -133,6 +133,11 @@ def sym_search(q):
     r=""
     for c in engine.recommend_by_symptom(q): r+=c; yield r
 
+def herb_search(q):
+    if not q.strip(): yield "약재명 또는 처방명을 입력해주세요."; return
+    r=""
+    for c in engine.search_by_herbs(q): r+=c; yield r
+
 def presc_search(n):
     if not n.strip(): yield "처방명을 입력해주세요."; return
     r=""
@@ -332,7 +337,40 @@ with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
             sym_btn = gr.Button("처방 추천 받기", variant="primary")
             sym_btn.click(fn=sym_search, inputs=sym_in, outputs=sym_out)
 
-        # 탭 2 처방 상세
+        # 탭 2 약재 검색
+        with gr.Tab("🌿 약재 검색"):
+            gr.Markdown(
+                "### 약재·처방 구성 기반 검색\n"
+                "- **약재만 입력:** `황기, 당귀, 천궁` → 해당 약재를 포함하는 처방 검색\n"
+                "- **처방+약재 입력:** `사물탕+황기` 또는 `사물탕, 황기` → 사물탕 구성약재 전체 + 황기를 포함하는 처방 검색\n"
+                "- 구분자: **쉼표(,)** 또는 **+(플러스)** 사용"
+            )
+            herb_in = gr.Textbox(
+                label="약재명 / 처방명+약재명 입력",
+                placeholder="예) 사물탕+황기 / 황기, 당귀, 천궁 / 마황, 계지, 세신",
+                lines=2,
+            )
+            gr.Examples(
+                [
+                    ["사물탕+황기"],
+                    ["사물탕, 황기"],
+                    ["황기, 당귀, 천궁, 작약"],
+                    ["마황, 계지, 세신"],
+                    ["숙지황, 산수유, 산약"],
+                    ["인삼, 백출, 복령, 감초"],
+                ],
+                inputs=herb_in,
+                label="예시",
+            )
+            herb_out = gr.Markdown(
+                value="*약재명 또는 처방명을 입력하고 검색하세요.*",
+                label="약재 검색 결과",
+                sanitize_html=False,
+            )
+            herb_btn = gr.Button("약재로 처방 검색", variant="primary")
+            herb_btn.click(fn=herb_search, inputs=herb_in, outputs=herb_out)
+
+        # (구 탭 2) 처방 상세
         with gr.Tab("📖 처방 상세", elem_id="tab_detail"):
             with gr.Row():
                 p_in = gr.Textbox(label="처방명 입력", placeholder="예) 소청룡탕", elem_id="presc_input")

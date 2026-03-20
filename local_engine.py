@@ -10,6 +10,7 @@ vault_parser.py 로 파싱한 532개 처방 데이터를 활용합니다.
   C. 유사 처방 분석 → 약재 가감 비교
   D. 치험례 검색 → DB 텍스트 매칭
   E. 유사도 네트워크 데이터
+  F. 약재 기반 검색 (부분 약재 + 처방+약재 복합)
 """
 
 import re
@@ -346,6 +347,167 @@ def _format_similar_analysis(target: Prescription, similar: list[tuple[Prescript
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 약재 검색 유틸
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _normalize_herb(herb: str) -> str:
+    """약재명 정규화: 괄호·한자·용량 제거"""
+    herb = re.sub(r'\(.*?\)', '', herb)       # 괄호 제거: 황기(炙) → 황기
+    herb = re.sub(r'\s*\d+[\w㎎%]*\s*', '', herb)  # 숫자+단위 제거
+    return herb.strip()
+
+
+def _herb_match(query_herb: str, candidate_herbs: list[str]) -> bool:
+    """쿼리 약재가 후보 약재 목록에 포함되는지 (부분 문자열 매칭)"""
+    q = _normalize_herb(query_herb)
+    if not q:
+        return False
+    for h in candidate_herbs:
+        hn = _normalize_herb(h)
+        if q == hn or q in hn or hn in q:
+            return True
+    return False
+
+
+def _parse_herb_query(
+    query: str, all_prescriptions: list[Prescription]
+) -> tuple[list[Prescription], list[str], list[str]]:
+    """
+    쿼리를 파싱하여 처방명과 약재명으로 분리.
+
+    예) "사물탕+황기" → ([사물탕 객체], ["황기"], [숙지황,당귀,천궁,작약,황기])
+    예) "황기, 당귀, 천궁" → ([], ["황기","당귀","천궁"], ["황기","당귀","천궁"])
+
+    Returns:
+        found_prescriptions : 인식된 처방 객체 목록
+        direct_herbs        : 직접 입력된 약재명 목록
+        required_herbs      : 처방 구성약재 + 직접약재 (중복 제거, 순서 보존)
+    """
+    # 구분자: +, ,, 、, ·, 공백 (단, 2글자 이상만)
+    tokens = [t.strip() for t in re.split(r'[+,、·\s]+', query.strip()) if len(t.strip()) >= 2]
+
+    presc_by_name = {p.name: p for p in all_prescriptions}
+    # 처방명 종류 접미어 (탕/산/환/음/단/고/원/방)
+    presc_suffixes = ('탕', '산', '환', '음', '단', '고', '원', '방', '제', '전')
+
+    found_prescriptions: list[Prescription] = []
+    direct_herbs: list[str] = []
+
+    for token in tokens:
+        if token in presc_by_name:
+            # 정확히 일치하는 처방명
+            found_prescriptions.append(presc_by_name[token])
+        else:
+            # 부분 일치 처방명 탐색 (3글자 이상, 처방 접미어 포함 토큰 우선)
+            partial = [p for p in all_prescriptions if token in p.name and len(token) >= 3]
+            if partial and any(token.endswith(sfx) for sfx in presc_suffixes):
+                found_prescriptions.append(partial[0])
+            else:
+                direct_herbs.append(token)
+
+    # required_herbs: 처방 구성약재 펼치기 + 직접 약재 (순서 보존 중복 제거)
+    seen: set[str] = set()
+    required_herbs: list[str] = []
+    for p in found_prescriptions:
+        for h in p.herbs:
+            hn = _normalize_herb(h)
+            if hn not in seen:
+                seen.add(hn)
+                required_herbs.append(h)   # 원본 표기 유지
+    for herb in direct_herbs:
+        hn = _normalize_herb(herb)
+        if hn not in seen:
+            seen.add(hn)
+            required_herbs.append(herb)
+
+    return found_prescriptions, direct_herbs, required_herbs
+
+
+def _format_herb_search_results(
+    query: str,
+    found_prescriptions: list[Prescription],
+    direct_herbs: list[str],
+    required_herbs: list[str],
+    results: list[tuple[Prescription, list[str], list[str], float]],
+) -> str:
+    """약재 검색 결과 마크다운 포매터"""
+    sections: list[str] = [f"## 「{query}」 약재 검색 결과\n"]
+
+    # 검색 조건 표시
+    if found_prescriptions:
+        names = ", ".join(p.name for p in found_prescriptions)
+        herb_list = ", ".join(required_herbs[:len(required_herbs) - len(direct_herbs)])
+        sections.append(
+            f"**처방 기반:** {names}의 구성약재 → {herb_list}"
+        )
+    if direct_herbs:
+        sections.append(f"**추가 약재:** {', '.join(direct_herbs)}")
+
+    req_display = ", ".join(f"`{h}`" for h in required_herbs)
+    sections.append(f"**검색 약재 ({len(required_herbs)}종):** {req_display}\n")
+
+    if not results:
+        sections.append("검색 조건에 맞는 처방을 찾지 못했습니다.\n\n"
+                        "**도움말:** 약재명 구분은 쉼표(,) 또는 +(플러스)를 사용하세요.\n"
+                        "처방명을 포함하면 해당 처방의 구성약재가 자동으로 확장됩니다.")
+        return "\n".join(sections)
+
+    full_match = [(p, m, u, c) for p, m, u, c in results if c >= 1.0]
+    partial_match = [(p, m, u, c) for p, m, u, c in results if c < 1.0]
+
+    sections.append(
+        f"총 **{len(results)}개** 처방 검색 "
+        f"(완전 포함: **{len(full_match)}개**, 부분 포함: {len(partial_match)}개)\n"
+    )
+
+    if full_match:
+        sections.append("### ✅ 모든 약재 포함\n")
+        for rank, (p, matched, unmatched, coverage) in enumerate(full_match[:12], 1):
+            sections.append(f"---\n#### {rank}. {_presc_link(p.name)}")
+            if p.code:
+                sections.append(f"`{p.code}`  |  {p.section}")
+            # 구성약재 — 검색 약재는 강조
+            herb_parts = []
+            for h in p.herbs[:18]:
+                if _herb_match(h, required_herbs):
+                    herb_parts.append(f"**{h}**")
+                else:
+                    herb_parts.append(h)
+            if len(p.herbs) > 18:
+                herb_parts.append(f"외 {len(p.herbs)-18}종")
+            sections.append(f"**구성 ({len(p.herbs)}종):** {', '.join(herb_parts)}")
+            if p.indications:
+                tags = "  ".join(f"`#{ind}`" for ind in p.indications[:10])
+                sections.append(f"적응증: {tags}")
+            if p.description:
+                desc = p.description[:200] + ("..." if len(p.description) > 200 else "")
+                sections.append(f"> {desc}")
+
+    if partial_match:
+        sections.append("\n### 🔶 부분 포함 (일부 약재 미포함)\n")
+        for rank, (p, matched, unmatched, coverage) in enumerate(partial_match[:10], 1):
+            sections.append(f"---\n#### {rank}. {_presc_link(p.name)}  (포함율 {coverage:.0%})")
+            if p.code:
+                sections.append(f"`{p.code}`")
+            sections.append(f"✔ 포함: {', '.join(matched)}")
+            sections.append(f"✖ 미포함: {', '.join(unmatched)}")
+            herb_parts = []
+            for h in p.herbs[:15]:
+                if _herb_match(h, required_herbs):
+                    herb_parts.append(f"**{h}**")
+                else:
+                    herb_parts.append(h)
+            if len(p.herbs) > 15:
+                herb_parts.append(f"외 {len(p.herbs)-15}종")
+            sections.append(f"**구성:** {', '.join(herb_parts)}")
+            if p.indications:
+                tags = "  ".join(f"`#{ind}`" for ind in p.indications[:8])
+                sections.append(f"적응증: {tags}")
+
+    return "\n".join(sections)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 통합 로컬 엔진
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -512,6 +674,54 @@ class LocalHerbEngine:
                 existing_targets.add(rel["name"])
 
         return edges
+
+    # ── 약재 기반 처방 검색 ──────────────────────────────────────────────
+
+    def search_by_herbs(self, query: str):
+        """
+        약재명 또는 처방명+약재명으로 처방 검색 (generator).
+
+        - "황기, 당귀, 천궁"    → 3종을 포함하는 처방 검색
+        - "사물탕+황기"          → 사물탕 구성약재 + 황기를 포함하는 처방 검색
+        - "사물탕, 황기"         → 위와 동일
+        - 커버리지 100% (완전포함) → 우선 표시
+        - 커버리지 50%+ (부분포함) → 이후 표시
+        """
+        query = query.strip()
+        if not query:
+            yield "약재명 또는 처방명을 입력해주세요.\n\n**예시:** 황기, 당귀 / 사물탕+황기 / 마황, 계지, 세신"
+            return
+
+        all_p = self.db.get_all_prescriptions()
+        found_prescriptions, direct_herbs, required_herbs = _parse_herb_query(query, all_p)
+
+        if not required_herbs:
+            yield "검색할 약재를 인식하지 못했습니다. 약재명을 다시 확인해주세요."
+            return
+
+        # 각 처방에 대해 포함 비율 계산
+        results = []
+        for p in all_p:
+            matched: list[str] = []
+            unmatched: list[str] = []
+            for req in required_herbs:
+                if _herb_match(req, p.herbs):
+                    matched.append(req)
+                else:
+                    unmatched.append(req)
+
+            coverage = len(matched) / len(required_herbs)
+
+            # 50% 이상 포함된 처방만 결과에 포함
+            if coverage >= 0.5:
+                results.append((p, matched, unmatched, coverage))
+
+        # 정렬: 커버리지 내림차순 → 처방 약재 수 오름차순 (더 집중된 처방 우선)
+        results.sort(key=lambda x: (-x[3], len(x[0].herbs)))
+
+        yield _format_herb_search_results(
+            query, found_prescriptions, direct_herbs, required_herbs, results
+        )
 
     def get_all_prescription_names(self) -> list[str]:
         return sorted(p.name for p in self.db.get_all_prescriptions())
