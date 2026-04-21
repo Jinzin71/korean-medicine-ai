@@ -8,6 +8,10 @@ import json
 import gradio as gr
 from pathlib import Path
 from datetime import datetime
+from html import escape
+
+from fastapi import FastAPI, Query
+from fastapi.responses import HTMLResponse
 
 IS_HF_SPACES = os.getenv("SPACE_ID") is not None
 
@@ -168,9 +172,12 @@ def run_sync():
         return "⚠️ Band 동기화는 로컬 환경에서만 지원됩니다."
     try:
         from band_sync import SyncScheduler, load_config
-        s = SyncScheduler(load_config("band_config.yaml")).run_once()
+        config_path = os.getenv("BAND_CONFIG_PATH", "band_config.yaml")
+        s = SyncScheduler(load_config(config_path)).run_once()
         return f"✅ 삽입:{s['inserted']} 스킵:{s['skipped']} 오류:{s['errors']}"
-    except FileNotFoundError: return "⚠️ band_config.yaml 없음"
+    except FileNotFoundError:
+        config_path = os.getenv("BAND_CONFIG_PATH", "band_config.yaml")
+        return f"⚠️ {config_path} 없음"
     except Exception as e: return f"❌ {e}"
 
 # ── 체질 평가 핸들러 ──────────────────────────────────────────────────────────
@@ -521,8 +528,72 @@ with gr.Blocks(title="한의처방 AI", css=CSS) as demo:
 
 demo.queue()
 
+
+def _oauth_callback_page(code: str | None, error: str | None, state: str | None) -> str:
+    if error:
+        return f"""
+<!doctype html>
+<html><head><meta charset="utf-8"><title>BAND OAuth Callback</title></head>
+<body style="font-family:system-ui,sans-serif;padding:24px;line-height:1.6">
+  <h2 style="color:#c0392b">❌ 인증 실패</h2>
+  <p><b>error:</b> {escape(error)}</p>
+  <p>터미널로 돌아가 다시 인증을 시도하세요.</p>
+</body></html>"""
+
+    if code:
+        state_row = f"<p><b>state:</b> <code>{escape(state)}</code></p>" if state else ""
+        return f"""
+<!doctype html>
+<html><head><meta charset="utf-8"><title>BAND OAuth Callback</title></head>
+<body style="font-family:system-ui,sans-serif;padding:24px;line-height:1.6">
+  <h2 style="color:#27ae60">✅ 인증 코드 수신 완료</h2>
+  <p>아래 값을 복사해서 터미널의 <code>band_api.py --auth --auth-mode manual</code> 입력창에 붙여넣으세요.</p>
+  <p><b>code:</b> <code style="word-break:break-all">{escape(code)}</code></p>
+  {state_row}
+  <p>전체 URL을 그대로 붙여넣어도 됩니다.</p>
+</body></html>"""
+
+    return """
+<!doctype html>
+<html><head><meta charset="utf-8"><title>BAND OAuth Callback</title></head>
+<body style="font-family:system-ui,sans-serif;padding:24px;line-height:1.6">
+  <h2 style="color:#f39c12">⚠️ code 파라미터가 없습니다</h2>
+  <p>OAuth 인증을 처음부터 다시 진행해주세요.</p>
+</body></html>"""
+
+
+def create_web_app() -> FastAPI:
+    app = FastAPI(title="한의처방 AI", docs_url=None, redoc_url=None)
+
+    @app.get("/health")
+    def health_check():
+        return {"status": "ok"}
+
+    @app.get("/auth/callback", response_class=HTMLResponse)
+    def band_oauth_callback(
+        code: str | None = Query(default=None),
+        error: str | None = Query(default=None),
+        state: str | None = Query(default=None),
+    ):
+        return HTMLResponse(_oauth_callback_page(code, error, state))
+
+    return gr.mount_gradio_app(app, demo, path="/")
+
+
+app = create_web_app()
+
 if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0", server_port=7860,
-        inbrowser=not IS_HF_SPACES,
-    )
+    import webbrowser
+    import uvicorn
+
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "7860"))
+    is_local_launch = os.getenv("PORT") is None and not IS_HF_SPACES
+
+    if is_local_launch:
+        try:
+            webbrowser.open(f"http://localhost:{port}")
+        except Exception:
+            pass
+
+    uvicorn.run(app, host=host, port=port)

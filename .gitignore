@@ -24,6 +24,10 @@ chroma_db/
 .makemd/
 .space/
 .trash/
+.tmp_ocr/
+.tmp_ocr_sample/
+.tmp_ocr_test/
+새로보는 방약합편/*.pdf
 
 # Data artifacts
 context.mdb
@@ -38,8 +42,6 @@ lib/
 # Unused modules (local-only)
 claude_engine.py
 paper_search.py
-band_api.py
-band_sync.py
 project_status.py
 
 # Non-essential folders

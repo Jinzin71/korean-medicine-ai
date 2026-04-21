@@ -1,0 +1,19 @@
+band:
+  api:
+    client_id: "your_client_id"
+    client_secret: "your_client_secret"
+    token_file: "band_token.json"
+    redirect_uri_mode: "custom"
+    redirect_uri: "https://<railway-domain>/auth/callback"
+    redirect_uri_local: "http://localhost:9000/callback"
+    redirect_uri_remote: "https://<railway-domain>/auth/callback"
+    callback_timeout_sec: 120
+  band_key: "your_band_key"
+
+obsidian:
+  vault_path: "./방약합편"
+  prescriptions: "auto"
+
+schedule:
+  cron: "0 */6 * * *"
+  max_posts_per_run: 50

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: korean-medicine-ai
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
