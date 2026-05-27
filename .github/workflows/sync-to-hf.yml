@@ -20,8 +20,24 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          set -euo pipefail
+
+          DEPLOY_DIR="$RUNNER_TEMP/hf-space"
+          mkdir -p "$DEPLOY_DIR"
+
+          # HF Spaces rejects normal git pushes that contain binary files.
+          # The app rebuilds prescriptions.db from markdown at startup,
+          # so deploy a clean source tree without the local SQLite artifact.
+          git archive --format=tar HEAD | tar -x -C "$DEPLOY_DIR"
+          rm -f "$DEPLOY_DIR/prescriptions.db"
+
+          cd "$DEPLOY_DIR"
+          git init -b main
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
+          git add -A
+          git commit -m "Sync from GitHub ${GITHUB_SHA}"
           git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/magicians7/korean-medicine-ai
-          # HF Spaces 기본 브랜치가 main 또는 master일 수 있으므로 둘 다 시도
-          git push hf HEAD:main --force || git push hf HEAD:master --force
+
+          # Try both possible default branches for HF Spaces.
+          git push hf main:main --force || git push hf main:master --force
