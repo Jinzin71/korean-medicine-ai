@@ -587,7 +587,9 @@ if __name__ == "__main__":
     import uvicorn
 
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "7860"))
+    # Managed Hugging Face Gradio Spaces expect the app on 7860.
+    # Other platforms such as Railway can still inject PORT.
+    port = 7860 if IS_HF_SPACES else int(os.getenv("PORT", "7860"))
     is_local_launch = os.getenv("PORT") is None and not IS_HF_SPACES
 
     if is_local_launch:
