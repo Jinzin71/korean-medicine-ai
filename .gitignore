@@ -2,9 +2,13 @@
 band_config.yaml
 band_token.json
 .env
+.band_browser_profile/
+.playwright-mcp/
 
 # Local tracking
 seen_posts.json
+band_web_seen.json
+band_web_exports/
 work_log.md
 dashboard.md
 dashboard.html
